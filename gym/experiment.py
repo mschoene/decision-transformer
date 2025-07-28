@@ -84,9 +84,9 @@ def experiment(
         obs = path['observations']
         if action_leakage:
             # Add a_t-1 to o_t; pad the first observation with zeros
-            zero_action = np.zeros((1, path['actions'].shape[1]))
-            obs = np.concatenate([zero_action, obs[:-1]], axis=0)
-            obs = np.concatenate([obs, path['actions']], axis=1)
+            zero_action = np.zeros((1, path['actions'].shape[1]))  # Match action dimension
+            obs = np.concatenate([obs, zero_action], axis=1)  # Append actions to observations
+            obs = np.concatenate([np.zeros_like(obs[:1]), obs[:-1]], axis=0)  # Pad first observation
         states.append(obs)
         traj_lens.append(len(obs))
         returns.append(path['rewards'].sum())
