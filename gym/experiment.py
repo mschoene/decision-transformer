@@ -270,6 +270,7 @@ def experiment(
             name=exp_prefix,
             group=group_name,
             project='decision-transformer',
+            entity='myriam_org',
             config=variant
         )
         # wandb.watch(model)  # wandb has some bug
