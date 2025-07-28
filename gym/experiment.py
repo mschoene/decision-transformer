@@ -84,7 +84,7 @@ def experiment(
         obs = path['observations']
         if action_leakage:
             # Add a_t-1 to o_t; pad the first observation with zeros
-            zero_action = np.zeros((1, path['actions'].shape[1]))  # Match action dimension
+            zero_action = np.zeros((obs.shape[0], path['actions'].shape[1]))  # Match observation rows
             obs = np.concatenate([obs, zero_action], axis=1)  # Append actions to observations
             obs = np.concatenate([np.zeros_like(obs[:1]), obs[:-1]], axis=0)  # Pad first observation
         states.append(obs)
