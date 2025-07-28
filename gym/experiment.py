@@ -62,6 +62,8 @@ def experiment(
     if model_type == 'bc':
         env_targets = env_targets[:1]  # since BC ignores target, no need for different evaluations
 
+    action_leakage = variant.get('action_leakage', False)
+
     state_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
 
@@ -77,8 +79,16 @@ def experiment(
         if mode == 'delayed':  # delayed: all rewards moved to end of trajectory
             path['rewards'][-1] = path['rewards'].sum()
             path['rewards'][:-1] = 0.
-        states.append(path['observations'])
-        traj_lens.append(len(path['observations']))
+        # states.append(path['observations'])
+        # traj_lens.append(len(path['observations']))
+        obs = path['observations']
+        if action_leakage:
+            # Add a_t-1 to o_t; pad the first observation with zeros
+            zero_action = np.zeros((1, path['actions'].shape[1]))
+            obs = np.concatenate([zero_action, obs[:-1]], axis=0)
+            obs = np.concatenate([obs, path['actions']], axis=1)
+        states.append(obs)
+        traj_lens.append(len(obs))
         returns.append(path['rewards'].sum())
     traj_lens, returns = np.array(traj_lens), np.array(returns)
 
@@ -114,6 +124,8 @@ def experiment(
 
     # used to reweight sampling so we sample according to timesteps instead of trajectories
     p_sample = traj_lens[sorted_inds] / sum(traj_lens[sorted_inds])
+
+    state_dim = states[0].shape[1]  # Update state_dim to include action leakage if enabled
 
     def get_batch(batch_size=256, max_len=K):
         batch_inds = np.random.choice(
@@ -303,6 +315,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_steps_per_iter', type=int, default=10000)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--log_to_wandb', '-w', type=bool, default=False)
+    parser.add_argument('--action_leakage', type=bool, default=False, help='Enable action leakage into observations')
+
     
     args = parser.parse_args()
 
