@@ -79,18 +79,22 @@ def experiment(
         if mode == 'delayed':  # delayed: all rewards moved to end of trajectory
             path['rewards'][-1] = path['rewards'].sum()
             path['rewards'][:-1] = 0.
-        obs = path['observations']
+        obs = path.get('observations', None)
+        actions = path.get('actions', None)
+        if obs is None or obs.shape[0] == 0:
+            print(f"Skipping trajectory with invalid observations: {path}")
+            continue  # Skip trajectories with invalid observations
         if action_leakage:
-            if obs.shape[0] == 0 or path['actions'].shape[0] == 0:
-                continue  # Skip malformed trajectories
+            if actions is None or actions.shape[0] != obs.shape[0]:
+                print(f"Skipping trajectory with mismatched actions: {path}")
+                continue  # Skip trajectories with mismatched actions
             # Add a_t-1 to o_t; pad the first observation with zeros
-            zero_action = np.zeros((obs.shape[0], path['actions'].shape[1]))  # Match observation rows
+            zero_action = np.zeros((obs.shape[0], actions.shape[1]))  # Match observation rows
             obs = np.concatenate([obs, zero_action], axis=1)  # Append actions to observations
             obs = np.concatenate([np.zeros_like(obs[:1]), obs[:-1]], axis=0)  # Pad first observation
-        if obs.shape[0] > 0:  # Ensure valid observations
-            states.append(obs)
-            traj_lens.append(len(obs))
-            returns.append(path['rewards'].sum())
+        states.append(obs)
+        traj_lens.append(len(obs))
+        returns.append(path['rewards'].sum())
     if len(states) == 0:
         raise ValueError("No valid trajectories found. Check the dataset or preprocessing logic.")
     traj_lens, returns = np.array(traj_lens), np.array(returns)
