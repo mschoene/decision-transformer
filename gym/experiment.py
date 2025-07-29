@@ -79,17 +79,20 @@ def experiment(
         if mode == 'delayed':  # delayed: all rewards moved to end of trajectory
             path['rewards'][-1] = path['rewards'].sum()
             path['rewards'][:-1] = 0.
-        # states.append(path['observations'])
-        # traj_lens.append(len(path['observations']))
         obs = path['observations']
         if action_leakage:
+            if obs.shape[0] == 0 or path['actions'].shape[0] == 0:
+                continue  # Skip malformed trajectories
             # Add a_t-1 to o_t; pad the first observation with zeros
             zero_action = np.zeros((obs.shape[0], path['actions'].shape[1]))  # Match observation rows
             obs = np.concatenate([obs, zero_action], axis=1)  # Append actions to observations
             obs = np.concatenate([np.zeros_like(obs[:1]), obs[:-1]], axis=0)  # Pad first observation
-        states.append(obs)
-        traj_lens.append(len(obs))
-        returns.append(path['rewards'].sum())
+        if obs.shape[0] > 0:  # Ensure valid observations
+            states.append(obs)
+            traj_lens.append(len(obs))
+            returns.append(path['rewards'].sum())
+    if len(states) == 0:
+        raise ValueError("No valid trajectories found. Check the dataset or preprocessing logic.")
     traj_lens, returns = np.array(traj_lens), np.array(returns)
 
     # used for input normalization
